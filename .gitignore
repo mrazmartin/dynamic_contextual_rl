@@ -1,0 +1,9 @@
+*.zip
+*.pyc
+*.csv
+*.png
+*.gif
+*.npz
+*.pdf
+
+helix_scripts/*
