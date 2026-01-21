@@ -213,10 +213,14 @@ def stay_still_context(
     physics = Physics.from_xml_string(xml_string, common.ASSETS)
     task = Move(desired_speed=0.0, random=random)  # <-- key: zero desired speed
     environment_kwargs = environment_kwargs or {}
+
+    # if time limit is not part of environment_kwargs, add it
+    if "time_limit" not in environment_kwargs:
+        environment_kwargs["time_limit"] = time_limit
+
     return control.Environment(
         physics,
         task,
-        time_limit=time_limit,
         control_timestep=_CONTROL_TIMESTEP,
         **environment_kwargs,
     )
