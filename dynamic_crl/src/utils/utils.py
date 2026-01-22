@@ -7,7 +7,26 @@ import os
 def load_cfg(yaml_path: Path) -> Dict[str, Any]:
     with open(yaml_path, "r") as f:
         return yaml.safe_load(f)
-    
+
+# ------------------------
+# naming experiment runs
+# ------------------------
+import re
+
+def sanitize(x):
+    s = str(x).replace(".", "p").replace("-", "m")
+    return re.sub(r"[^A-Za-z0-9_]+", "", s)
+
+def condition_name(ctx_key, dyn_kind, dyn_params, min_v, max_v, train_ctxs_kind, single_value):
+    parts = [ctx_key, f"dyn_{dyn_kind}"]
+    for k, v in sorted(dyn_params.items()):
+        parts.append(f"{k[:6]}{sanitize(v)}")
+    parts.append(f"min{sanitize(min_v)}_max{sanitize(max_v)}")
+    parts.append(f"train_{'yaml' if train_ctxs_kind=='yaml' else 'single'}")
+    if train_ctxs_kind != "yaml":
+        parts.append(f"V{sanitize(single_value)}")
+    return "__".join(parts)
+
 # ----------------------
 # Utilities / Seeding
 # ----------------------

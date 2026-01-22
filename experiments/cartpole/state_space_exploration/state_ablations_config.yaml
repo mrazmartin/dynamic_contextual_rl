@@ -1,0 +1,97 @@
+# =========================
+# Runner-wide configuration
+# =========================
+seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+norm_mode: ctx # (none | vec | ctx)
+n_envs_parallel: 8
+
+# Only dynamic setups; statics are already done elsewhere
+conditions: [
+  "dynamic_sequential",
+  "dynamic_parallel",
+]
+
+total_steps: 50000
+
+eval:
+  id: [0.4, 0.5, 0.6, 0.7]
+  ood_low: [0.06, 0.075, 0.09, 0.105, 0.12]
+  ood_high: [0.92, 1.0, 1.08, 1.16, 1.24, 1.32]
+
+  n_envs: 8
+  freq: 6144 # 3* 2048
+  episodes_per_ctx: 30
+
+# Train range for CartPole length
+train_pools:
+  single_mid:   { length: [0.55] }
+  single_low:   { length: [0.35] } # no dynamics on this one (not used here)
+  single_high:  { length: [0.75] } # no dynamics on this one (not used here)
+  pool3:        { length: [0.35, 0.55, 0.75] }
+  pool7:        { length: [0.35, 0.41, 0.48, 0.55, 0.62, 0.68, 0.75] }
+
+# Which pools to run (only pool7 actually used for these conditions)
+static_seq_pools: [single_mid, single_low, single_high, pool3, pool7]      # ignored (no static_* in conditions)
+dynamic_seq_pools: [pool7]
+
+static_parallel_pools: [single_mid, single_low, single_high, pool3, pool7] # ignored (no static_* in conditions)
+dynamic_parallel_pools: [pool7]
+
+# No extra_* pools or extra_*_pools lists anymore
+
+# Baseline dynamic section (kept for compatibility; ignored when DYN_SECTION_KEY=dynamic_best)
+dynamic:
+  - name: sinusoidal_large # for default context only
+    dyn_kind: sinusoidal
+    dyn_seed: 0
+    fixed:
+      amplitude_frac: 1.0
+      period: 250
+      offset_from_context: true
+    grid: {}
+  
+  - name: sinusoidal_medium # for 3 context pool
+    dyn_kind: sinusoidal
+    dyn_seed: 0
+    fixed:
+      amplitude_frac: 0.5
+      period: 125
+      offset_from_context: true
+    grid: {}
+
+  - name: sinusoidal_small # for 7 context pool
+    dyn_kind: sinusoidal
+    dyn_seed: 0
+    fixed:
+      amplitude_frac: 0.25
+      period: 125
+      offset_from_context: true
+    grid: {}
+
+# Best-scheduler presets (used when DYN_SECTION_KEY=dynamic_best)
+dynamic_best:
+  - name: best_continuous_incrementer_pool7
+    dyn_kind: continuous_incrementer
+    train_ctxs_kind: yaml
+    dyn_seed: 0
+    fixed:
+      delta_frac: 0.005
+      direction: both
+      edge_mode: reflect
+      episode_direction: random
+      follow_predefined_prob: 0.8
+    grid: {}
+
+  - name: best_cosine_annealing_pool7
+    dyn_kind: cosine_annealing
+    train_ctxs_kind: yaml
+    dyn_seed: 0
+    fixed:
+      mode: cycle
+      T_mult: 1
+      offset_from_context: true
+      direction: random
+      T_0: 250
+      neighborhood_radius_frac: 0.20
+      retarget: restart
+    grid: {}
