@@ -44,6 +44,40 @@ def _configure_executor(
         addl_gpu = {**addl, "gres": gres}
         ex.update_parameters(slurm_partition=part_gpu, slurm_additional_parameters=addl_gpu, **base)
 
+# ----------------------
+# Save root resolution
+# ----------------------
+def resolve_run_root(current_dir) -> Path:
+    """
+    Cluster runs (Submitit/SLURM):
+      - Prefer RESULTS_ROOT / HELIX_RUN_ROOT if we're inside a scheduled job.
+    Local runs (no Submitit/SLURM):
+      - Save next to this script under ./runs
+    Also supports EXPL_CFG pointing at a pinned config (kept for compatibility).
+    """
+    is_cluster = bool(
+        os.environ.get("SUBMITIT_FOLDER") or
+        os.environ.get("SLURM_JOB_ID") or
+        os.environ.get("SLURM_JOB_NAME")
+    )
+
+    if is_cluster:
+        for k in ("RESULTS_ROOT", "HELIX_RUN_ROOT"):
+            v = os.environ.get(k, "").strip()
+            if v:
+                return Path(v).resolve()
+
+        # Fallback: EXPL_CFG might be inside a run dir
+        cfg_env = os.environ.get("EXPL_CFG", "").strip()
+        if cfg_env:
+            p = Path(cfg_env).resolve()
+            if p.parent.name == "_pinned_cfg":
+                return p.parent.parent
+            return p.parent
+
+    # Local default: save next to code
+    return (Path(current_dir) / "runs").resolve()
+
 # --------- public API ---------
 def run_with_submitit(
     main_fn: Callable[[Path], object],   # your exp_main(results_root: Path)

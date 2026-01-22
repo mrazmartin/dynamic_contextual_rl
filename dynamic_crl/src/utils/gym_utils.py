@@ -8,7 +8,20 @@ project_root = os.path.abspath(os.path.join(current_dir, '../../'))
 
 from dynamic_crl.src.utils.log_msgs import warn_msg, info_msg
 
-def get_base_env(env):
+def get_gym_base_env(e):
+    """
+    Unwrapes nested Gym wrappers (CARL included).
+    Use to directly modify the environment physics engines.
+    """
+    cur = e
+    for _ in range(16):
+        if hasattr(cur, "env"):
+            cur = cur.env
+        else:
+            break
+    return getattr(cur, "unwrapped", cur)
+
+def get_CARL_env(env):
     """
     Unwraps nested Gym wrappers (FlattenObservation, DummyVecEnv, etc.)
     but stops at CARL envs which define `.context`.
@@ -25,6 +38,16 @@ def get_ctx_env_from_dummy_vec_env(env):
         return env.envs[0].env # we have DummyVecEnv - OurContextWrapper -> the env used for training
     else:
         raise ValueError("Provided environment is not a DummyVecEnv")
+
+# cartpole
+def _make_cp_ctx_accessor(attr: str):
+    def getter(e):
+        base = get_gym_base_env(e)
+        return getattr(base, attr, None)
+    def setter(e, v):
+        base = get_gym_base_env(e)
+        setattr(base, attr, float(v))
+    return getter, setter
 
 def cartpole_env_factory(contexts=None, render_mode=None, ctx_to_observe=None):
     """
