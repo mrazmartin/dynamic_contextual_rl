@@ -1,0 +1,68 @@
+PAYLOAD: { mass: 2.0, radius: 0.4, y: 0.0 }
+
+train_ranges:
+  COM_X: [-0.6, 0.6]
+
+default_train_pool: triple
+
+train_pools:
+  baseline: { COM_X: [0.0] }
+  baseline_low: { COM_X: [-0.6] }
+  baseline_high: { COM_X: [ 0.6] }
+  triple:   { COM_X: [-0.6, 0.0, 0.6] }
+  large:    { COM_X: [-0.6, -0.4, -0.2, 0.0, 0.2, 0.4, 0.6] }
+
+eval_pools:
+  ood_low:  { COM_X: [-0.9, -1.1, -1.3, -1.5, -1.7] }
+  ood_high: { COM_X: [ 1.1,  1.3,  1.5,  1.7] }
+  id:       { COM_X: [-0.4, -0.2, 0.0, 0.2, 0.4] }
+
+# optional: for nicer condition names
+train_contexts:
+  COM_X: [-0.6, 0.6]
+single_defaults:
+  COM_X: 0.0
+
+dynamic_search:
+  - dyn_kind: sin
+    dyn_seed: 0
+    train_ctxs_kind: pool
+    grid:
+      amplitude: [0.3, 0.45]
+      period: [150, 300]
+
+  - dyn_kind: cosine_annealing
+    dyn_seed: 0
+    train_ctxs_kind: pool
+    fixed:
+      retarget: restart
+      mode: cycle
+    grid:
+      T_0: [150, 300]
+      neighborhood_radius: [0.3, 0.45]
+  
+  - dyn_kind: piecewise_constant
+    train_ctxs_kind: pool # doesnt matter much since we are jumping around lol
+    dyn_seed: 0
+    fixed:
+      values: [-0.6, -0.25, 0.0, 0.25, 0.6]
+    grid:
+      interval_range:
+        - [50, 100]
+        - [200, 300]
+
+  - dyn_kind: continuous_incrementer
+    train_ctxs_kind: pool
+    dyn_seed: 0
+    fixed:
+      direction: both
+      follow_predefined_prob: 0.8
+    grid:
+      delta: [0.001, 0.0001]        # step size as fraction of full ctx span
+      edge_mode: ["clip", "reflect"]  # saturate vs bounce (flip sign persistently on bounce)
+      episode_direction: ["up", "down", "random"]  # "random" = your "both"
+
+ppo: { total_steps: 300000, rollout_steps: 2048 }
+seeds: [0, 1, 2, 3, 4, 5, 6, 7]
+ctx_keys: ["COM_X"]
+# results_root: /abs/path/for/runs (optional)
